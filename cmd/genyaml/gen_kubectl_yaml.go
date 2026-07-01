@@ -161,9 +161,12 @@ func genYaml(command *cobra.Command, parent, docsDir string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	defer outFile.Close()
-	_, err = outFile.Write(final)
-	if err != nil {
+	if _, err := outFile.Write(final); err != nil {
+		_ = outFile.Close()
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if err := outFile.Close(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

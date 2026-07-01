@@ -18,6 +18,7 @@ package editor
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"reflect"
 	"strings"
@@ -37,6 +38,27 @@ func TestArgs(t *testing.T) {
 	if e, a := []string{"/test", "test"}, (Editor{Args: []string{"/test"}}).args("test"); !reflect.DeepEqual(e, a) {
 		t.Errorf("unexpected args: %v", a)
 	}
+}
+
+func TestLaunchTempFileCleanupOnCopyError(t *testing.T) {
+	edit := Editor{Args: []string{"cat"}}
+	r := &failingReader{err: errors.New("write failed")}
+	_, path, err := edit.LaunchTempFile("", "someprefix", r)
+	if err == nil {
+		t.Fatal("expected an error when io.Copy fails")
+	}
+	if _, statErr := os.Stat(path); statErr == nil {
+		t.Errorf("expected temp file %q to be removed after Copy error", path)
+		os.Remove(path)
+	}
+}
+
+type failingReader struct {
+	err error
+}
+
+func (r *failingReader) Read(_ []byte) (int, error) {
+	return 0, r.err
 }
 
 func TestEditor(t *testing.T) {

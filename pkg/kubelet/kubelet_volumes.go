@@ -127,6 +127,12 @@ func (kl *Kubelet) removeOrphanedPodVolumeDirs(logger klog.Logger, uid types.UID
 	}
 	if len(volumePaths) > 0 {
 		for _, volumePath := range volumePaths {
+			// Directories may contain metadata files (for example CSI drivers sometimes
+			// leave json files in the volume path). Remove those files before rmdir so
+			// the empty directory can be removed without crossing into a mount point.
+			if err := removeOrphanedRegularFiles(volumePath); err != nil {
+				orphanVolumeErrors = append(orphanVolumeErrors, fmt.Errorf("orphaned pod %q found, but failed to remove files in volume at path %v: %v", uid, volumePath, err))
+			}
 			if err := syscall.Rmdir(volumePath); err != nil {
 				orphanVolumeErrors = append(orphanVolumeErrors, fmt.Errorf("orphaned pod %q found, but failed to rmdir() volume at path %v: %v", uid, volumePath, err))
 			} else {
@@ -162,6 +168,24 @@ func (kl *Kubelet) removeOrphanedPodVolumeDirs(logger klog.Logger, uid types.UID
 	}
 
 	return orphanVolumeErrors
+}
+
+// removeOrphanedRegularFiles deletes regular files that are direct children of dir.
+// It intentionally does not recurse into subdirectories so that mount points (and
+// any directories that may be mount points) are never entered.
+func removeOrphanedRegularFiles(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.Type().IsRegular() {
+			if err := os.Remove(filepath.Join(dir, entry.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // cleanupOrphanedPodDirs removes the volumes of pods that should not be

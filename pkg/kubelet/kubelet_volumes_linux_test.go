@@ -138,7 +138,7 @@ func TestCleanupOrphanedPodDirs(t *testing.T) {
 				return validateDirNotExists(podDir)
 			},
 		},
-		"pod-doesnot-exists-with-populated-volume": {
+		"pod-doesnot-exists-with-populated-volume-cleans-files": {
 			prepareFunc: func(kubelet *Kubelet) error {
 				podDir := kubelet.getPodDir("pod1uid")
 				volumePath := filepath.Join(podDir, "volumes/plugin/name")
@@ -149,7 +149,7 @@ func TestCleanupOrphanedPodDirs(t *testing.T) {
 			},
 			validateFunc: func(kubelet *Kubelet) error {
 				podDir := kubelet.getPodDir("pod1uid")
-				return validateDirExists(filepath.Join(podDir, "volumes/plugin/name"))
+				return validateDirNotExists(filepath.Join(podDir, "volumes/plugin/name"))
 			},
 		},
 		"pod-doesnot-exists-with-populated-subpath": {

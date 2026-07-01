@@ -186,7 +186,7 @@ func main() {
 	dependenciesJSONPath := string(os.Args[1])
 	dependencies, err := readFile(dependenciesJSONPath)
 	if err != nil {
-		log.Fatalf("Error reading dependencies file %s: %s", dependencies, err)
+		log.Fatalf("Error reading dependencies file %s: %s", dependenciesJSONPath, err)
 	}
 
 	// load Unwanted from json
